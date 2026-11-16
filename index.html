@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Subs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Subs">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<style>
+:root{
+  --bg:#f2f2f7; --card:#fff; --text:#000; --sub:#6c6c70; --line:#e3e3e8; --tint:#007aff;
+  --red:#ff3b30; --orange:#ff9500; --green:#34c759; --fill:#e9e9ee; --sheet:#f2f2f7;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#000; --card:#1c1c1e; --text:#fff; --sub:#98989f; --line:#2c2c2e; --tint:#0a84ff;
+    --red:#ff453a; --orange:#ff9f0a; --green:#30d158; --fill:#2c2c2e; --sheet:#1c1c1e; }
+  dialog .group{ background:#2c2c2e } dialog{ --line:#3a3a3c }
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+html,body{ margin:0; background:var(--bg); color:var(--text);
+  font:17px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif }
+body{ padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 96px);
+  max-width:640px; margin:0 auto; -webkit-user-select:none; user-select:none }
+header{ display:flex; align-items:flex-end; justify-content:space-between; padding:12px 4px 8px }
+h1{ font-size:34px; font-weight:700; letter-spacing:-.4px; margin:0 }
+h2{ font-size:13px; font-weight:400; text-transform:uppercase; color:var(--sub); margin:22px 16px 7px; letter-spacing:.2px }
+button{ font:inherit; color:var(--tint); background:none; border:0; padding:0; cursor:pointer }
+.iconbtn{ width:36px; height:36px; border-radius:18px; background:var(--fill); font-size:18px; display:grid; place-items:center }
+.card,.group{ background:var(--card); border-radius:14px; overflow:hidden }
+.summary{ padding:16px }
+.summary .label{ font-size:13px; color:var(--sub) }
+.summary .big{ font-size:32px; font-weight:700; letter-spacing:-.5px; margin:2px 0 }
+.summary .small{ font-size:14px; color:var(--sub) }
+.cur-lines{ margin-top:10px; border-top:.5px solid var(--line); padding-top:10px; display:grid; gap:4px; font-size:15px }
+.cur-lines div{ display:flex; justify-content:space-between }
+.cur-lines span:last-child{ color:var(--sub) }
+.search{ width:100%; margin-top:14px; border:0; border-radius:10px; background:var(--fill); color:var(--text);
+  font:inherit; padding:8px 12px; outline:0; -webkit-user-select:text; user-select:text }
+.chips{ display:flex; gap:8px; overflow-x:auto; padding:12px 0 2px; scrollbar-width:none }
+.chips::-webkit-scrollbar{ display:none }
+.chip{ flex:none; padding:6px 13px; border-radius:16px; background:var(--card); color:var(--text); font-size:14px }
+.chip.on{ background:var(--tint); color:#fff }
+.row{ display:flex; align-items:center; gap:12px; padding:11px 16px; position:relative; cursor:pointer }
+.row + .row::before{ content:""; position:absolute; top:0; left:64px; right:0; border-top:.5px solid var(--line) }
+.row:active{ background:var(--fill) }
+.avatar{ flex:none; width:36px; height:36px; border-radius:9px; display:grid; place-items:center; font-size:19px; background:var(--fill) }
+.row .mid{ flex:1; min-width:0 }
+.row .name{ font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.row .meta{ font-size:13px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.row .right{ text-align:right; flex:none }
+.row .amt{ font-weight:600; font-variant-numeric:tabular-nums }
+.row .per{ font-size:13px; color:var(--sub) }
+.badge{ font-size:12px; font-weight:600; padding:2px 7px; border-radius:8px; display:inline-block }
+.badge.red{ background:color-mix(in srgb,var(--red) 18%,transparent); color:var(--red) }
+.badge.orange{ background:color-mix(in srgb,var(--orange) 20%,transparent); color:var(--orange) }
+.badge.grey{ background:var(--fill); color:var(--sub) }
+.muted{ opacity:.55 }
+.empty{ text-align:center; color:var(--sub); padding:48px 24px }
+.empty b{ display:block; color:var(--text); font-size:20px; margin-bottom:6px }
+.fab{ position:fixed; right:20px; bottom:calc(env(safe-area-inset-bottom) + 20px); width:58px; height:58px; border-radius:29px;
+  background:var(--tint); color:#fff; font-size:32px; font-weight:300; line-height:1; box-shadow:0 6px 18px rgba(0,0,0,.25); display:grid; place-items:center }
+/* sheets */
+dialog{ border:0; padding:0; margin:auto auto 0; width:100%; max-width:640px; max-height:94dvh; height:94dvh;
+  border-radius:14px 14px 0 0; background:var(--sheet); color:var(--text); overflow:hidden }
+dialog[open]{ display:flex; flex-direction:column; animation:up .28s cubic-bezier(.2,.8,.2,1) }
+dialog::backdrop{ background:rgba(0,0,0,.4) }
+@keyframes up{ from{ transform:translateY(100%) } }
+.bar{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; flex:none }
+.bar b{ font-size:17px }
+.bar .done{ font-weight:600 }
+.body{ overflow-y:auto; padding:0 16px calc(env(safe-area-inset-bottom) + 28px); -webkit-overflow-scrolling:touch }
+.field{ display:flex; align-items:center; gap:12px; padding:0 16px; min-height:46px; position:relative }
+.field + .field::before{ content:""; position:absolute; top:0; left:16px; right:0; border-top:.5px solid var(--line) }
+.field label{ flex:none; width:118px; font-size:16px }
+.field input,.field select,.field textarea{ flex:1; min-width:0; border:0; background:transparent; color:var(--text); font:inherit;
+  text-align:right; outline:0; padding:10px 0; -webkit-user-select:text; user-select:text; -webkit-appearance:none; appearance:none }
+.field select{ direction:rtl; color:var(--tint) } .field select option{ direction:ltr }
+.field input[type=date]{ color:var(--tint); min-height:24px }
+.field input[readonly]{ color:var(--sub) }
+.field textarea{ text-align:left; min-height:84px; resize:none }
+.field.col{ display:block; padding-top:10px } .field.col label{ font-size:13px; color:var(--sub) }
+.switch{ appearance:none; -webkit-appearance:none; flex:none !important; width:51px; height:31px; border-radius:16px; background:var(--fill);
+  position:relative; transition:background .2s; margin-left:auto; padding:0 !important }
+.switch::after{ content:""; position:absolute; top:2px; left:2px; width:27px; height:27px; border-radius:50%; background:#fff;
+  box-shadow:0 2px 4px rgba(0,0,0,.25); transition:transform .2s }
+.switch:checked{ background:var(--green) } .switch:checked::after{ transform:translateX(20px) }
+.hint{ font-size:13px; color:var(--sub); margin:7px 16px 0 }
+.action{ display:block; width:100%; padding:12px 16px; text-align:center; position:relative }
+.action + .action::before{ content:""; position:absolute; top:0; left:16px; right:0; border-top:.5px solid var(--line) }
+.action.left{ text-align:left } .action.red{ color:var(--red) }
+#toast{ position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 96px); transform:translateX(-50%); background:rgba(40,40,42,.95); color:#fff;
+  padding:10px 16px; border-radius:20px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99; max-width:86vw; text-align:center }
+#toast.show{ opacity:1 }
+</style>
+</head>
+<body>
+<header>
+  <h1>Subscriptions</h1>
+  <button class="iconbtn" id="btnSettings" aria-label="Settings">⚙︎</button>
+</header>
+
+<div class="card summary" id="summary"></div>
+<input class="search" id="search" type="search" placeholder="Search" autocomplete="off">
+<div class="chips" id="chips"></div>
+<div id="lists"></div>
+
+<button class="fab" id="btnAdd" aria-label="Add subscription">+</button>
+<div id="toast"></div>
+
+<!-- Edit sheet -->
+<dialog id="dlgEdit">
+  <div class="bar"><button id="eCancel">Cancel</button><b id="eTitle">New Subscription</b><button class="done" id="eSave">Save</button></div>
+  <div class="body">
+    <div class="group">
+      <div class="field"><label>Name</label><input id="fName" placeholder="Netflix, Electric Ireland…" autocomplete="off"></div>
+      <div class="field"><label>Category</label><select id="fCategory"></select></div>
+      <div class="field"><label>Status</label><select id="fStatus"><option value="active">Active</option><option value="paused">Paused</option><option value="cancelled">Cancelled</option></select></div>
+    </div>
+    <h2>Cost</h2>
+    <div class="group">
+      <div class="field"><label>Cost</label><input id="fCost" type="text" inputmode="decimal" placeholder="0.00"></div>
+      <div class="field"><label>Currency</label><select id="fCurrency"></select></div>
+      <div class="field"><label>Billed</label><select id="fCycle"></select></div>
+      <div class="field"><label>Monthly cost</label><input id="fMonthly" readonly tabindex="-1"></div>
+    </div>
+    <p class="hint">Monthly cost is worked out from the cost and how often it is billed.</p>
+    <h2>Dates</h2>
+    <div class="group">
+      <div class="field"><label>Next renewal</label><input id="fNext" type="date"></div>
+      <div class="field"><label>Auto-renews</label><input id="fAuto" type="checkbox" class="switch"></div>
+      <div class="field"><label>Expiry date</label><input id="fExpiry" type="date"></div>
+    </div>
+    <p class="hint">Next renewal is the next payment date. Expiry is optional: the end of a contract, fixed term or price deal.</p>
+    <h2>Reminder</h2>
+    <div class="group">
+      <div class="field"><label>Remind me</label><select id="fRemind"></select></div>
+    </div>
+    <h2>Payment</h2>
+    <div class="group">
+      <div class="field"><label>Paid by</label><select id="fPay"></select></div>
+      <div class="field"><label>Details</label><input id="fPayDetail" placeholder="e.g. Visa ending 4417" autocomplete="off"></div>
+      <div class="field"><label>Country</label><input id="fCountry" list="countries" placeholder="Country" autocomplete="off"></div>
+    </div>
+    <p class="hint">Use the last four digits only. Never store a full card number here.</p>
+    <h2>Note</h2>
+    <div class="group">
+      <div class="field col"><textarea id="fNote" placeholder="Account email, plan, how to cancel…"></textarea></div>
+    </div>
+    <div id="eExtra" style="margin-top:22px">
+      <div class="group"><button class="action" id="eCal">Add reminder to Calendar</button></div>
+      <div class="group" style="margin-top:14px"><button class="action red" id="eDelete">Delete Subscription</button></div>
+    </div>
+  </div>
+</dialog>
+<datalist id="countries"></datalist>
+
+<!-- Settings sheet -->
+<dialog id="dlgSettings">
+  <div class="bar"><span style="width:50px"></span><b>Settings</b><button class="done" id="sDone">Done</button></div>
+  <div class="body">
+    <h2>Defaults</h2>
+    <div class="group">
+      <div class="field"><label>Main currency</label><select id="sBase"></select></div>
+      <div class="field"><label>Country</label><input id="sCountry" list="countries" autocomplete="off"></div>
+      <div class="field"><label>Remind me</label><select id="sRemind"></select></div>
+    </div>
+    <h2>Exchange rates</h2>
+    <div class="group" id="sRates"></div>
+    <p class="hint">Optional. Enter rates by hand to see one combined total in your main currency. The app never goes online to fetch them.</p>
+    <h2>Reminders</h2>
+    <div class="group"><button class="action left" id="sCalAll">Add all reminders to Calendar</button></div>
+    <p class="hint">Creates calendar events with alerts for every active subscription, so your iPhone notifies you even when this app is closed.</p>
+    <h2>Your data</h2>
+    <div class="group">
+      <button class="action left" id="sExport">Back up (JSON file)</button>
+      <button class="action left" id="sCsv">Export spreadsheet (CSV)</button>
+      <button class="action left" id="sImport">Restore from backup</button>
+      <button class="action left red" id="sWipe">Erase everything</button>
+    </div>
+    <p class="hint">Everything is stored only on this device. Back up now and then: deleting the app from the Home Screen or clearing Safari data erases it.</p>
+    <input type="file" id="fileImport" accept=".json,application/json" hidden>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const KEY = "subs.v1";
+const CATS = [["Streaming","🎬"],["Music","🎵"],["Utilities","💡"],["Internet & Phone","📶"],["Software & Apps","💻"],["Cloud & Storage","☁️"],
+  ["Gaming","🎮"],["News & Reading","📰"],["Insurance","🛡️"],["Health & Fitness","🏃"],["Housing","🏠"],["Transport","🚗"],
+  ["Finance","🏦"],["Memberships","🎟️"],["Other","📦"]];
+const CYCLES = { weekly:["Weekly",52/12,"wk"], monthly:["Monthly",1,"mo"], bimonthly:["Every 2 months",1/2,"2 mo"], quarterly:["Quarterly",1/3,"qtr"],
+  halfyearly:["Every 6 months",1/6,"6 mo"], yearly:["Yearly",1/12,"yr"], biennial:["Every 2 years",1/24,"2 yr"], oneoff:["One-off",0,"once"] };
+const CUR = ["EUR","USD","GBP","CHF","CAD","AUD","NZD","PLN","CZK","HUF","SEK","NOK","DKK","RON","BGN","RSD","BAM","TRY","AED","SAR","INR","JPY","CNY","SGD","HKD","MXN","BRL","ZAR"];
+const PAY = ["Credit card","Debit card","Direct debit","Bank transfer","Standing order","PayPal","Apple Pay","Google Pay","Revolut","App Store","Cash","Other"];
+const REMIND = [[-1,"Never"],[0,"On the day"],[1,"1 day before"],[3,"3 days before"],[7,"1 week before"],[14,"2 weeks before"],[30,"1 month before"]];
+const COUNTRIES = ["Ireland","United Kingdom","United States","Croatia","Germany","France","Spain","Italy","Netherlands","Belgium","Austria","Switzerland","Poland","Portugal","Sweden","Norway","Denmark","Finland","Czechia","Hungary","Slovenia","Serbia","Bosnia and Herzegovina","Greece","Canada","Australia","New Zealand","Mexico","United Arab Emirates","India","Singapore","Japan"];
+
+let state = { subs:[], settings:{ base:"EUR", country:"Ireland", remind:7, rates:{} } };
+let filter = "All", query = "", editing = null;
+
+/* ---------- storage ---------- */
+function load(){
+  try{ const raw = localStorage.getItem(KEY); if(raw){ const d = JSON.parse(raw);
+    if(d && Array.isArray(d.subs)){ state.subs = d.subs; Object.assign(state.settings, d.settings||{}); } } }catch(e){}
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ toast("Could not save on this device"); } }
+
+/* ---------- dates ---------- */
+const pad = n => String(n).padStart(2,"0");
+const iso = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parse = s => { if(!/^\d{4}-\d{2}-\d{2}$/.test(s||"")) return null; const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+const today = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+const daysTo = s => { const d = parse(s); return d ? Math.round((d - today())/864e5) : null; };
+function addMonths(d, n){ const day = d.getDate(); const r = new Date(d.getFullYear(), d.getMonth()+n, 1);
+  const last = new Date(r.getFullYear(), r.getMonth()+1, 0).getDate(); r.setDate(Math.min(day,last)); return r; }
+function step(d, cycle){
+  switch(cycle){ case "weekly": return new Date(d.getFullYear(), d.getMonth(), d.getDate()+7);
+    case "monthly": return addMonths(d,1); case "bimonthly": return addMonths(d,2); case "quarterly": return addMonths(d,3);
+    case "halfyearly": return addMonths(d,6); case "yearly": return addMonths(d,12); case "biennial": return addMonths(d,24); }
+  return null;
+}
+/* move past renewal dates forward for auto-renewing subscriptions */
+function rollForward(){
+  let changed = false; const t = today();
+  for(const s of state.subs){
+    if(s.status !== "active" || !s.autoRenew || s.cycle === "oneoff") continue;
+    let d = parse(s.next); if(!d) continue;
+    const end = parse(s.expiry); let guard = 0;
+    while(d < t && guard++ < 2000){ const n = step(d, s.cycle); if(!n || (end && n > end)) break; d = n; }
+    const v = iso(d); if(v !== s.next){ s.next = v; changed = true; }
+  }
+  if(changed) save();
+}
+const fmtDate = s => { const d = parse(s); return d ? d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}) : ""; };
+function rel(n){ if(n === 0) return "today"; if(n === 1) return "tomorrow"; if(n === -1) return "yesterday";
+  return n < 0 ? Math.abs(n)+" days ago" : "in "+n+" days"; }
+
+/* ---------- money ---------- */
+function money(v, cur){ try{ return new Intl.NumberFormat(undefined,{style:"currency",currency:cur}).format(v); }catch(e){ return v.toFixed(2)+" "+cur; } }
+const num = v => { const n = parseFloat(String(v).replace(",",".")); return isFinite(n) && n >= 0 ? n : 0; };
+const monthly = s => num(s.cost) * (CYCLES[s.cycle]||CYCLES.monthly)[1];
+const catIcon = c => (CATS.find(x => x[0] === c) || CATS[CATS.length-1])[1];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- reminders ---------- */
+/* returns the soonest thing worth flagging for a subscription, or null */
+function alertFor(s){
+  if(s.status !== "active") return null;
+  const r = Number(s.remind); if(r < 0) return null;
+  const out = [];
+  const dn = daysTo(s.next), de = daysTo(s.expiry);
+  if(dn !== null && dn <= r) out.push({ days:dn, text: dn < 0 ? "Was due "+rel(dn) : (s.autoRenew ? "Renews " : "Due ")+rel(dn) });
+  if(de !== null && de <= r) out.push({ days:de, text: de < 0 ? "Expired "+rel(de) : "Expires "+rel(de) });
+  if(!out.length) return null;
+  out.sort((a,b) => a.days - b.days); return out[0];
+}
+
+/* ---------- render ---------- */
+function render(){
+  rollForward();
+  const active = state.subs.filter(s => s.status === "active");
+  // summary
+  const by = {}; active.forEach(s => { by[s.currency] = (by[s.currency]||0) + monthly(s); });
+  const curs = Object.keys(by).sort((a,b) => by[b]-by[a]);
+  const base = state.settings.base, rates = state.settings.rates||{};
+  const missing = curs.filter(c => c !== base && !(num(rates[c]) > 0));
+  let h = "";
+  if(!active.length){ h = `<div class="label">Monthly total</div><div class="big">${esc(money(0,base))}</div><div class="small">No active subscriptions yet</div>`; }
+  else if(curs.length === 1 || !missing.length){
+    const total = curs.reduce((t,c) => t + by[c]*(c === base ? 1 : num(rates[c])), 0);
+    const cur = curs.length === 1 ? curs[0] : base;
+    const tot = curs.length === 1 ? by[cur] : total;
+    h = `<div class="label">Monthly total</div><div class="big">${esc(money(tot,cur))}</div>
+      <div class="small">${esc(money(tot*12,cur))} a year · ${active.length} active</div>`;
+    if(curs.length > 1) h += `<div class="cur-lines">`+curs.map(c => `<div><span>${esc(money(by[c],c))}</span><span>${esc(c)} / month</span></div>`).join("")+`</div>`;
+  } else {
+    h = `<div class="label">Monthly total by currency</div>`+
+      `<div class="cur-lines" style="border:0;margin:6px 0 0;padding:0;font-size:22px;font-weight:700">`+
+      curs.map(c => `<div><span>${esc(money(by[c],c))}</span><span style="font-size:14px;font-weight:400">${esc(money(by[c]*12,c))} a year</span></div>`).join("")+`</div>
+      <div class="small" style="margin-top:8px">${active.length} active · add exchange rates in Settings for one combined total</div>`;
+  }
+  $("summary").innerHTML = h;
+
+  // chips
+  const used = [...new Set(state.subs.map(s => s.category))];
+  const cats = ["All", ...CATS.map(c => c[0]).filter(c => used.includes(c))];
+  if(!cats.includes(filter)) filter = "All";
+  $("chips").innerHTML = cats.length > 2 ? cats.map(c => `<button class="chip ${c === filter ? "on" : ""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("") : "";
+  $("search").style.display = state.subs.length > 5 ? "" : "none";
+
+  // lists
+  const q = query.trim().toLowerCase();
+  const match = s => (filter === "All" || s.category === filter) &&
+    (!q || [s.name,s.category,s.note,s.payMethod,s.payDetail,s.country,s.currency].join(" ").toLowerCase().includes(q));
+  const list = state.subs.filter(match);
+  const key = s => { const d = daysTo(s.next); return d === null ? 1e9 : d; };
+  const due = list.filter(s => alertFor(s)).sort((a,b) => alertFor(a).days - alertFor(b).days);
+  const rest = list.filter(s => s.status === "active" && !alertFor(s)).sort((a,b) => key(a)-key(b) || a.name.localeCompare(b.name));
+  const off = list.filter(s => s.status !== "active").sort((a,b) => a.name.localeCompare(b.name));
+  let out = "";
+  if(!state.subs.length) out = `<div class="empty"><b>No subscriptions yet</b>Tap + to add your first one: streaming, utilities, insurance, anything that renews.</div>`;
+  else if(!list.length) out = `<div class="empty">Nothing matches.</div>`;
+  else {
+    if(due.length) out += `<h2>Needs attention</h2><div class="group">${due.map(row).join("")}</div>`;
+    if(rest.length) out += `<h2>Upcoming</h2><div class="group">${rest.map(row).join("")}</div>`;
+    if(off.length) out += `<h2>Paused &amp; cancelled</h2><div class="group">${off.map(row).join("")}</div>`;
+  }
+  $("lists").innerHTML = out;
+  try{ if(navigator.setAppBadge){ const n = state.subs.filter(s => alertFor(s)).length; n ? navigator.setAppBadge(n) : navigator.clearAppBadge(); } }catch(e){}
+}
+function row(s){
+  const a = alertFor(s), cyc = CYCLES[s.cycle] || CYCLES.monthly;
+  let meta;
+  if(s.status !== "active") meta = `<span class="badge grey">${s.status === "paused" ? "Paused" : "Cancelled"}</span>`;
+  else if(a) meta = `<span class="badge ${a.days <= 1 ? "red" : "orange"}">${esc(a.text)}</span>`;
+  else if(s.next) meta = esc((s.cycle === "oneoff" ? "Due " : s.autoRenew ? "Renews " : "Next ")+fmtDate(s.next));
+  else meta = "No date set";
+  const tail = [s.payMethod, s.country].filter(Boolean).join(" · ");
+  const m = monthly(s);
+  const per = s.cycle === "monthly" ? "per month" : s.cycle === "oneoff" ? "one-off" : esc(money(m, s.currency))+" / mo";
+  return `<div class="row ${s.status !== "active" ? "muted" : ""}" data-id="${esc(s.id)}">
+    <div class="avatar">${catIcon(s.category)}</div>
+    <div class="mid"><div class="name">${esc(s.name)}</div><div class="meta">${meta}${tail && !a ? " · "+esc(tail) : ""}</div></div>
+    <div class="right"><div class="amt">${esc(money(num(s.cost), s.currency))}</div><div class="per">${per}</div></div></div>`;
+}
+
+/* ---------- edit sheet ---------- */
+const opt = (v,t,sel) => `<option value="${esc(v)}" ${String(v) === String(sel) ? "selected" : ""}>${esc(t)}</option>`;
+function curOptions(sel){ const list = CUR.includes(sel) || !sel ? CUR : [sel, ...CUR]; return list.map(c => opt(c,c,sel)).join(""); }
+function openEdit(id){
+  const s = id ? state.subs.find(x => x.id === id) : null; editing = s ? s.id : null;
+  const d = s || { name:"", category:"Streaming", status:"active", cost:"", currency:state.settings.base, cycle:"monthly",
+    next:iso(addMonths(today(),1)), autoRenew:true, expiry:"", remind:state.settings.remind, payMethod:"Credit card", payDetail:"", country:state.settings.country, note:"" };
+  $("eTitle").textContent = s ? "Edit" : "New Subscription";
+  $("fName").value = d.name;
+  $("fCategory").innerHTML = CATS.map(c => opt(c[0], c[1]+"  "+c[0], d.category)).join("");
+  $("fStatus").value = d.status;
+  $("fCost").value = d.cost === "" ? "" : num(d.cost);
+  $("fCurrency").innerHTML = curOptions(d.currency);
+  $("fCycle").innerHTML = Object.entries(CYCLES).map(([k,v]) => opt(k, v[0], d.cycle)).join("");
+  $("fNext").value = d.next || ""; $("fAuto").checked = !!d.autoRenew; $("fExpiry").value = d.expiry || "";
+  $("fRemind").innerHTML = REMIND.map(r => opt(r[0], r[1], d.remind)).join("");
+  $("fPay").innerHTML = PAY.map(p => opt(p,p,d.payMethod)).join("");
+  $("fPayDetail").value = d.payDetail || ""; $("fCountry").value = d.country || ""; $("fNote").value = d.note || "";
+  $("eExtra").style.display = s ? "" : "none";
+  calcMonthly(); $("dlgEdit").showModal(); $("dlgEdit").querySelector(".body").scrollTop = 0;
+}
+function calcMonthly(){
+  const c = $("fCycle").value, v = num($("fCost").value) * CYCLES[c][1];
+  $("fMonthly").value = c === "oneoff" ? "One-off, not counted" : money(v, $("fCurrency").value);
+}
+function readForm(){
+  return { name:$("fName").value.trim(), category:$("fCategory").value, status:$("fStatus").value, cost:num($("fCost").value),
+    currency:$("fCurrency").value, cycle:$("fCycle").value, next:$("fNext").value, autoRenew:$("fAuto").checked, expiry:$("fExpiry").value,
+    remind:Number($("fRemind").value), payMethod:$("fPay").value, payDetail:$("fPayDetail").value.trim(), country:$("fCountry").value.trim(), note:$("fNote").value.trim() };
+}
+function saveEdit(){
+  const d = readForm();
+  if(!d.name){ toast("Give it a name"); $("fName").focus(); return; }
+  if(/\d[\d -]{11,}\d/.test(d.payDetail)){ toast("Use the last four digits only, not a full card number"); $("fPayDetail").focus(); return; }
+  if(editing){ Object.assign(state.subs.find(x => x.id === editing), d); }
+  else { d.id = Date.now().toString(36)+Math.random().toString(36).slice(2,7); d.created = iso(today()); state.subs.push(d); }
+  save(); $("dlgEdit").close(); render();
+}
+
+/* ---------- calendar (.ics) ---------- */
+const icsEsc = s => String(s||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+const icsDate = s => s.replace(/-/g,"");
+function fold(line){ const out = []; while(line.length > 70){ out.push(line.slice(0,70)); line = " "+line.slice(70); } out.push(line); return out.join("\r\n"); }
+function trigger(days){ return days <= 0 ? "PT9H" : days === 1 ? "-PT15H" : "-P"+(days-1)+"DT15H"; } // 09:00 on the reminder day
+function events(s){
+  const ev = [], stamp = new Date().toISOString().replace(/[-:]|\.\d+/g,"");
+  const desc = [ money(num(s.cost), s.currency)+" ("+CYCLES[s.cycle][0].toLowerCase()+")", s.payMethod && "Paid by: "+s.payMethod+(s.payDetail ? " ("+s.payDetail+")" : ""),
+    s.country && "Country: "+s.country, s.note ].filter(Boolean).join("\n");
+  const rr = { weekly:"FREQ=WEEKLY", monthly:"FREQ=MONTHLY", bimonthly:"FREQ=MONTHLY;INTERVAL=2", quarterly:"FREQ=MONTHLY;INTERVAL=3",
+    halfyearly:"FREQ=MONTHLY;INTERVAL=6", yearly:"FREQ=YEARLY", biennial:"FREQ=YEARLY;INTERVAL=2" }[s.cycle];
+  const mk = (uid, date, title, rule) => {
+    const d = parse(date), end = iso(new Date(d.getFullYear(), d.getMonth(), d.getDate()+1));
+    const l = ["BEGIN:VEVENT","UID:"+uid+"@subs-tracker","DTSTAMP:"+stamp,"DTSTART;VALUE=DATE:"+icsDate(date),"DTEND;VALUE=DATE:"+icsDate(end),
+      "SUMMARY:"+icsEsc(title),"DESCRIPTION:"+icsEsc(desc),"TRANSP:TRANSPARENT"];
+    if(rule) l.push("RRULE:"+rule);
+    if(Number(s.remind) >= 0) l.push("BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(title),"TRIGGER:"+trigger(Number(s.remind)),"END:VALARM");
+    l.push("END:VEVENT"); ev.push(l.map(fold).join("\r\n"));
+  };
+  if(parse(s.next)){
+    let rule = s.autoRenew && rr ? rr : null;
+    if(rule && parse(s.expiry)) rule += ";UNTIL="+icsDate(s.expiry);
+    mk(s.id+"-renew", s.next, (s.autoRenew ? "Renews: " : "Payment due: ")+s.name+" – "+money(num(s.cost), s.currency), rule);
+  }
+  if(parse(s.expiry)) mk(s.id+"-expiry", s.expiry, "Expires: "+s.name, null);
+  return ev;
+}
+function calendar(subs, filename){
+  const ev = subs.flatMap(events);
+  if(!ev.length){ toast("No dates to add"); return; }
+  const ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Subs Tracker//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH", ...ev, "END:VCALENDAR"].join("\r\n")+"\r\n";
+  deliver(ics, filename, "text/calendar");
+}
+
+/* ---------- files ---------- */
+async function deliver(text, filename, type){
+  const file = new File([text], filename, { type });
+  try{ if(navigator.canShare && navigator.canShare({ files:[file] })){ await navigator.share({ files:[file] }); return; } }
+  catch(e){ if(e && e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function csv(){
+  const cols = ["Name","Category","Status","Cost","Currency","Billed","Monthly cost","Next renewal","Auto-renews","Expiry date","Paid by","Payment details","Country","Note"];
+  const q = v => { let t = String(v ?? ""); if(/^[=+\-@]/.test(t)) t = "'"+t; return '"'+t.replace(/"/g,'""')+'"'; };
+  const rows = state.subs.map(s => [s.name,s.category,s.status,num(s.cost).toFixed(2),s.currency,CYCLES[s.cycle][0],monthly(s).toFixed(2),s.next,s.autoRenew ? "Yes" : "No",
+    s.expiry,s.payMethod,s.payDetail,s.country,s.note].map(q).join(","));
+  deliver("\ufeff"+[cols.map(q).join(","), ...rows].join("\r\n"), "subscriptions.csv", "text/csv");
+}
+function clean(x){ // sanitise one imported record
+  if(!x || typeof x !== "object" || !String(x.name||"").trim()) return null;
+  const str = (v,n) => String(v ?? "").slice(0,n);
+  return { id:str(x.id,40).replace(/[^\w-]/g,"") || Date.now().toString(36)+Math.random().toString(36).slice(2,7), name:str(x.name,120).trim(),
+    category:CATS.some(c => c[0] === x.category) ? x.category : "Other", status:["active","paused","cancelled"].includes(x.status) ? x.status : "active",
+    cost:num(x.cost), currency:/^[A-Z]{3}$/.test(x.currency) ? x.currency : "EUR", cycle:CYCLES[x.cycle] ? x.cycle : "monthly",
+    next:parse(x.next) ? x.next : "", autoRenew:!!x.autoRenew, expiry:parse(x.expiry) ? x.expiry : "",
+    remind:REMIND.some(r => r[0] === Number(x.remind)) ? Number(x.remind) : 7, payMethod:PAY.includes(x.payMethod) ? x.payMethod : "Other",
+    payDetail:str(x.payDetail,80), country:str(x.country,60), note:str(x.note,2000), created:parse(x.created) ? x.created : "" };
+}
+function importFile(file){
+  const r = new FileReader();
+  r.onload = () => { try{
+      const d = JSON.parse(r.result); const subs = (Array.isArray(d) ? d : d.subs || []).map(clean).filter(Boolean);
+      if(!subs.length) throw 0;
+      if(state.subs.length && !confirm("Replace the "+state.subs.length+" subscriptions on this device with the "+subs.length+" in the backup?")) return;
+      state.subs = subs;
+      const st = d.settings || {};
+      if(/^[A-Z]{3}$/.test(st.base)) state.settings.base = st.base;
+      if(typeof st.country === "string") state.settings.country = st.country.slice(0,60);
+      if(REMIND.some(x => x[0] === Number(st.remind))) state.settings.remind = Number(st.remind);
+      if(st.rates && typeof st.rates === "object"){ state.settings.rates = {}; for(const k in st.rates) if(/^[A-Z]{3}$/.test(k)) state.settings.rates[k] = num(st.rates[k]); }
+      save(); render(); openSettings(); toast("Restored "+subs.length+" subscriptions");
+    }catch(e){ toast("That file is not a valid backup"); } };
+  r.readAsText(file);
+}
+
+/* ---------- settings ---------- */
+function openSettings(){
+  const st = state.settings;
+  $("sBase").innerHTML = curOptions(st.base); $("sCountry").value = st.country || "";
+  $("sRemind").innerHTML = REMIND.map(r => opt(r[0], r[1], st.remind)).join("");
+  const others = [...new Set(state.subs.map(s => s.currency))].filter(c => c !== st.base).sort();
+  $("sRates").innerHTML = others.length ? others.map(c => `<div class="field"><label>1 ${esc(c)} =</label>
+      <input type="text" inputmode="decimal" data-rate="${esc(c)}" value="${num(st.rates[c]) > 0 ? num(st.rates[c]) : ""}" placeholder="${esc(st.base)}"></div>`).join("")
+    : `<div class="field" style="color:var(--sub);font-size:15px">All subscriptions are in ${esc(st.base)}.</div>`;
+  if(!$("dlgSettings").open) $("dlgSettings").showModal();
+}
+
+/* ---------- events ---------- */
+let toastT; function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600); }
+$("btnAdd").onclick = () => openEdit(null);
+$("btnSettings").onclick = openSettings;
+$("lists").onclick = e => { const r = e.target.closest(".row"); if(r) openEdit(r.dataset.id); };
+$("chips").onclick = e => { const c = e.target.closest(".chip"); if(c){ filter = c.dataset.cat; render(); } };
+$("search").oninput = e => { query = e.target.value; render(); };
+$("eCancel").onclick = () => $("dlgEdit").close();
+$("eSave").onclick = saveEdit;
+["fCost","fCurrency","fCycle"].forEach(id => $(id).addEventListener("input", calcMonthly));
+$("eDelete").onclick = () => { const s = state.subs.find(x => x.id === editing);
+  if(s && confirm('Delete "'+s.name+'"?')){ state.subs = state.subs.filter(x => x.id !== editing); save(); $("dlgEdit").close(); render(); } };
+$("eCal").onclick = () => { const d = Object.assign({ id:editing }, readForm()); calendar([d], (d.name||"subscription").replace(/[^\w-]+/g,"_")+".ics"); };
+$("sDone").onclick = () => $("dlgSettings").close();
+$("sBase").onchange = e => { state.settings.base = e.target.value; state.settings.rates = {}; save(); render(); openSettings(); };
+$("sCountry").onchange = e => { state.settings.country = e.target.value.trim(); save(); };
+$("sRemind").onchange = e => { state.settings.remind = Number(e.target.value); save(); };
+$("sRates").oninput = e => { const c = e.target.dataset.rate; if(c){ state.settings.rates[c] = num(e.target.value); save(); render(); } };
+$("sCalAll").onclick = () => calendar(state.subs.filter(s => s.status === "active"), "subscription-reminders.ics");
+$("sExport").onclick = () => deliver(JSON.stringify({ app:"subs-tracker", version:1, exported:new Date().toISOString(), ...state }, null, 2), "subscriptions-backup-"+iso(today())+".json", "application/json");
+$("sCsv").onclick = csv;
+$("sImport").onclick = () => $("fileImport").click();
+$("fileImport").onchange = e => { if(e.target.files[0]) importFile(e.target.files[0]); e.target.value = ""; };
+$("sWipe").onclick = () => { if(confirm("Erase all subscriptions and settings from this device? This cannot be undone.")){
+  localStorage.removeItem(KEY); state = { subs:[], settings:{ base:"EUR", country:"Ireland", remind:7, rates:{} } }; render(); $("dlgSettings").close(); } };
+document.querySelectorAll("dialog").forEach(d => d.addEventListener("click", e => { if(e.target === d) d.close(); }));
+document.addEventListener("visibilitychange", () => { if(!document.hidden) render(); });
+
+$("countries").innerHTML = COUNTRIES.map(c => `<option value="${esc(c)}">`).join("");
+load(); render();
+if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+</script>
+</body>
+</html>
