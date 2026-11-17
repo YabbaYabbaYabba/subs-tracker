@@ -12,7 +12,12 @@ Version 3 adds a coloured spend panel (per month and per year) at the top, cance
 (Cancelled view, cancellation date, savings per month and year, saved so far, Mark as Cancelled / Reactivate),
 and a Light / Dark / System appearance setting.
 
-All data is stored on the device only. The app makes no network requests other than loading its own files.
+Version 4 adds website icons: per subscription (icon editor → Website) or for all at once (Settings → Icons).
+
+All data is stored on the device only. The app makes no network requests other than loading its own files, except for
+website icons: when you tap **Website** in the icon editor or **Get website icons** in Settings, the phone loads each
+service's icon from that service's own website (no referrer is sent). Icons are copied onto the device where the site
+allows it; otherwise they are loaded from the site and cached for offline use.
 
 **Install on iPhone:** open the site in Safari, tap Share, then *Add to Home Screen*.
 

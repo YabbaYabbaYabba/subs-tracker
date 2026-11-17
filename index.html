@@ -87,7 +87,10 @@ svg.i{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8
 .red{ color:var(--red) !important } .orange{ color:var(--orange) !important }
 .muted{ opacity:.55 }
 .tile{ --s:32px; width:var(--s); height:var(--s); border-radius:calc(var(--s) * .24); display:grid; place-items:center; color:#fff;
-  font-weight:700; font-size:calc(var(--s) * .48); overflow:hidden; flex:none; line-height:1 }
+  font-weight:700; font-size:calc(var(--s) * .48); overflow:hidden; flex:none; line-height:1; position:relative }
+/* icon loaded from the service's own website; the letter underneath shows if it fails to load */
+.tile.web img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#fff }
+.tile.web.small img{ object-fit:contain; padding:16% }
 .tile.emoji{ font-size:calc(var(--s) * .58) }
 .tile img{ width:100%; height:100%; object-fit:cover; display:block }
 .empty{ text-align:center; color:var(--sub); padding:56px 24px }
@@ -256,6 +259,9 @@ dialog::backdrop{ background:rgba(0,0,0,.4) }
   <h2>Exchange rates</h2>
   <div class="group" id="sRates"></div>
   <p class="hint">Optional. Enter rates by hand to see one combined total in your main currency. The app never goes online to fetch them.</p>
+  <h2>Icons</h2>
+  <div class="group"><button class="action left" id="sIcons">Get website icons for all subscriptions</button></div>
+  <p class="hint">Loads each service's icon from its own website, for subscriptions that have a Website and no photo or emoji icon. Your phone contacts those websites; nothing else is sent. Icons that a site lets the app copy are kept on this device; the rest are loaded from the site and cached for offline use.</p>
   <h2>Reminders</h2>
   <div class="group"><button class="action left" id="sCalAll">Add all reminders to Calendar</button></div>
   <p class="hint">Creates calendar events with alerts for every active subscription, so your iPhone notifies you even when this app is closed.</p>
@@ -267,7 +273,7 @@ dialog::backdrop{ background:rgba(0,0,0,.4) }
     <button class="action left red" id="sWipe">Erase everything</button>
   </div>
   <p class="hint">Everything is stored only on this device. Back up now and then: deleting the app from the Home Screen or clearing Safari data erases it.</p>
-  <p class="hint" style="margin-top:22px;text-align:center">Subs · version 3</p>
+  <p class="hint" style="margin-top:22px;text-align:center">Subs · version 4</p>
 </section>
 
 <nav class="tabbar" id="tabbar">
@@ -359,9 +365,9 @@ dialog::backdrop{ background:rgba(0,0,0,.4) }
     <div class="group" id="lIcon"><div class="egrid" id="lEmoji"></div></div>
     <div class="group" id="lColor" style="display:none"><div class="cgrid" id="lColors"></div></div>
     <div class="lookbtns">
-      <button id="lPhoto">Photo</button><button id="lClip">Clipboard</button><button id="lReset">Letter</button>
+      <button id="lWeb">Website</button><button id="lPhoto">Photo</button><button id="lClip">Clipboard</button><button id="lReset">Letter</button>
     </div>
-    <p class="hint">Photos are shrunk to a small icon and kept only on this device.</p>
+    <p class="hint">Website loads the icon the service publishes on its own site (needs the Website field filled in), so your phone contacts that site. Photos are shrunk to a small icon and kept only on this device.</p>
     <input type="file" id="filePhoto" accept="image/png,image/jpeg,image/webp,image/heic" hidden>
   </div>
 </dialog>
@@ -406,7 +412,7 @@ const CATALOG = [
  ["Kindle Unlimited","News & Reading","monthly","amazon.co.uk"],["Laya Healthcare","Insurance","yearly","layahealthcare.ie"],["LinkedIn Premium","Memberships","monthly","linkedin.com"],
  ["Microsoft 365","Software & Apps","yearly","microsoft.com"],["Motor tax","Transport","yearly","motortax.ie"],["Netflix","Streaming","monthly","netflix.com"],
  ["Nintendo Switch Online","Gaming","yearly","nintendo.com"],["NordVPN","Software & Apps","yearly","nordvpn.com"],["Notion","Software & Apps","monthly","notion.so"],
- ["NOW","Streaming","monthly",""],["Paramount+","Streaming","monthly","paramountplus.com"],["Patreon","Memberships","monthly","patreon.com"],
+ ["NOW","Streaming","monthly","nowtv.com"],["Prime Video","Streaming","monthly","primevideo.com"],["Paramount+","Streaming","monthly","paramountplus.com"],["Patreon","Memberships","monthly","patreon.com"],
  ["PlayStation Plus","Gaming","yearly","playstation.com"],["Plex Pass","Streaming","yearly","plex.tv"],["Revolut","Finance","monthly","revolut.com"],
  ["Sky","Streaming","monthly","sky.ie"],["Spotify","Music","monthly","spotify.com"],["SSE Airtricity","Utilities","bimonthly","sseairtricity.com"],
  ["Strava","Health & Fitness","yearly","strava.com"],["Surfshark","Software & Apps","yearly","surfshark.com"],["The Irish Times","News & Reading","monthly","irishtimes.com"],
@@ -414,6 +420,21 @@ const CATALOG = [
  ["VHI","Insurance","yearly","vhi.ie"],["Virgin Media","Internet & Phone","monthly","virginmedia.ie"],["Vodafone","Internet & Phone","monthly","vodafone.ie"],
  ["Xbox Game Pass","Gaming","monthly","xbox.com"],["YouTube Premium","Streaming","monthly","youtube.com"]
 ].sort((a,b) => a[0].localeCompare(b[0]));
+/* Where some services publish a large icon on their own website (checked November 2026).
+   Several addresses contain a version number and may stop working; the app then falls back to the usual addresses below. */
+const KNOWN_ICONS = {
+  "crunchyroll.com":["https://crunchyroll.com/build/assets/img/pwa/v2/512.png"],
+  "deezer.com":["https://cdn-files.dzcdn.net/cache/images/common/favicon/apple-touch-icon.dc494e31ef5f888a087a.png","https://cdn-files.dzcdn.net/cache/images/common/favicon/favicon-240x240.bb3a6a29ad16a77f10cb.png"],
+  "netflix.com":["https://assets.nflxext.com/ffe/siteui/common/icons/nficon2016.ico"],
+  "nowtv.com":["https://www.nowtv.com/static/now-toolkit/53.4.0/now/favicons/apple-touch-icon_180x180.png"],
+  "plex.tv":["https://watch.plex.tv/icons/icon-512x512.png","https://watch.plex.tv/icons/plex-180.png"],
+  "primevideo.com":["https://m.media-amazon.com/images/G/01/digital/video/DVUI/favicons/apple-touch-icon-180x180.png","https://m.media-amazon.com/images/G/01/digital/video/DVUI/favicons/apple-touch-icon-144x144.png"],
+  "sky.ie":["https://static.skyassets.com/favicons/apple-touch-icon.png"],
+  "sky.com":["https://static.skyassets.com/favicons/apple-touch-icon.png"],
+  "spotify.com":["https://open.spotifycdn.com/cdn/images/icons/Spotify_256.17e41e58.png"],
+  "tidal.com":["https://tidal.com/img/app-icon-512.png"],
+  "youtube.com":["https://www.youtube.com/s/desktop/bf021a32/img/favicon_144x144.png"]
+};
 
 const DEFAULT_SETTINGS = () => ({ base:"EUR", country:"Ireland", remind:7, rates:{}, sort:"next", theme:"system" });
 let state = { subs:[], settings:DEFAULT_SETTINGS() };
@@ -493,13 +514,61 @@ function dispCur(list){ const cs = [...new Set(list.map(s => s.currency))]; retu
 function conv(v, c, disp){ if(c === disp) return v; if(disp !== state.settings.base) return null;
   const r = num((state.settings.rates||{})[c]); return r > 0 ? v*r : null; }
 
+const validIconUrl = u => typeof u === "string" && u.length < 500 && /^https:\/\/[^\s"'<>\\]+$/.test(u) ? u : "";
 function iconHTML(s, size){
   const c = validColor(s.color) || COLORS[hash(s.name) % 13];
   const st = `--s:${size}px;background:${c}`;
   if(validPhoto(s.photo)) return `<span class="tile" style="${st}"><img src="${esc(s.photo)}" alt=""></span>`;
-  if(s.emoji) return `<span class="tile emoji" style="${st}">${esc(s.emoji)}</span>`;
   const ch = (Array.from(String(s.name||"?").trim())[0] || "?").toUpperCase();
+  if(validIconUrl(s.iconUrl)) return `<span class="tile web${s.iconSmall ? " small" : ""}" style="${st}">${esc(ch)}<img src="${esc(s.iconUrl)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()"></span>`;
+  if(s.emoji) return `<span class="tile emoji" style="${st}">${esc(s.emoji)}</span>`;
   return `<span class="tile" style="${st}">${esc(ch)}</span>`;
+}
+
+/* ---------- website icons ---------- */
+function hostOf(u){ const x = safeUrl(u); try{ return x ? new URL(x).hostname.replace(/^www\./,"").toLowerCase() : ""; }catch(e){ return ""; } }
+function loadImg(src, cors){
+  return new Promise(res => { const i = new Image(); if(cors) i.crossOrigin = "anonymous"; i.referrerPolicy = "no-referrer";
+    const t = setTimeout(() => { i.onload = i.onerror = null; res(null); }, 7000);
+    i.onload = () => { clearTimeout(t); res(i.naturalWidth >= 16 ? i : null); }; i.onerror = () => { clearTimeout(t); res(null); }; i.src = src; });
+}
+/* Find the best icon a service publishes on its own website. Returns icon fields for a subscription, or null. */
+async function findWebsiteIcon(url){
+  const h = hostOf(url); if(!h) return null;
+  const parent = h.split(".").slice(-2).join(".");
+  const known = KNOWN_ICONS[h] || KNOWN_ICONS[parent] || [];
+  const bare = h.split(".").length === 2 || (/\.co\.uk$/.test(h) && h.split(".").length === 3);
+  const hosts = bare ? ["www."+h, h] : [h];
+  const generic = hosts.flatMap(x => ["/apple-touch-icon.png","/apple-touch-icon-precomposed.png","/favicon.ico"].map(p => "https://"+x+p));
+  const all = [...new Set([...known, ...generic])];
+  const imgs = await Promise.all(all.map(u => loadImg(u, false)));
+  let pick = -1;
+  for(let i = 0; i < known.length; i++) if(imgs[i]){ pick = i; break; }      // a known large icon wins
+  if(pick < 0) imgs.forEach((im, i) => { if(im && (pick < 0 || im.naturalWidth > imgs[pick].naturalWidth)) pick = i; }); // else the largest
+  if(pick < 0) return null;
+  const src = all[pick], w = imgs[pick].naturalWidth, small = w < 96;
+  // keep a copy on the device when the site allows it (works offline, goes into backups)
+  const ci = await loadImg(src, true);
+  if(ci){ try{
+    const S = 128, c = document.createElement("canvas"); c.width = c.height = S; const x = c.getContext("2d");
+    x.fillStyle = "#ffffff"; x.fillRect(0,0,S,S);
+    if(small){ const d = S*.68; x.drawImage(ci, (S-d)/2, (S-d)/2, d, d); }
+    else { const k = Math.max(S/ci.naturalWidth, S/ci.naturalHeight), ww = ci.naturalWidth*k, hh = ci.naturalHeight*k; x.drawImage(ci, (S-ww)/2, (S-hh)/2, ww, hh); }
+    const p = c.toDataURL("image/jpeg", .9); if(validPhoto(p)) return { photo:p, iconUrl:"", iconSmall:false, emoji:"", small };
+  }catch(e){} }
+  return { photo:"", iconUrl:src, iconSmall:small, emoji:"", small };
+}
+async function fetchAllIcons(){
+  const list = state.subs.filter(s => safeUrl(s.url) && !validPhoto(s.photo) && !s.emoji && !validIconUrl(s.iconUrl));
+  if(!list.length){ toast("Nothing to do: every subscription with a website already has an icon"); return; }
+  if(!confirm("Get icons for "+list.length+" subscription"+(list.length === 1 ? "" : "s")+" from their own websites? Your phone will contact those websites.")) return;
+  const b = $("sIcons"); b.disabled = true; let ok = 0, done = 0;
+  for(let i = 0; i < list.length; i += 6){
+    await Promise.all(list.slice(i, i+6).map(async s => { const r = await findWebsiteIcon(s.url);
+      if(r){ delete r.small; Object.assign(s, r); ok++; } done++; b.textContent = "Getting icons… "+done+" of "+list.length; }));
+  }
+  b.disabled = false; b.textContent = "Get website icons for all subscriptions";
+  save(); render(); toast("Added "+ok+" of "+list.length+" icons"+(ok < list.length ? " · the rest keep their letter" : ""));
 }
 
 /* ---------- reminders ---------- */
@@ -838,7 +907,7 @@ function openEdit(id, preset){
     start:iso(today()), next:"", autoRenew:true, expiry:"", remind:state.settings.remind, payMethod:"Credit card", payDetail:"",
     country:state.settings.country, note:"", url:"", color:"", emoji:"", photo:"", endedOn:"" }, preset||{});
   if(!s && !d.next){ const st = parse(d.start); d.next = st ? iso(step(st, d.cycle === "oneoff" ? "monthly" : d.cycle) || st) : ""; }
-  look = { color:d.color||"", emoji:d.emoji||"", photo:d.photo||"" };
+  look = { color:d.color||"", emoji:d.emoji||"", photo:d.photo||"", iconUrl:d.iconUrl||"", iconSmall:!!d.iconSmall };
   $("eTitle").textContent = s ? "Edit" : "New Subscription";
   $("fName").value = d.name;
   $("fCategory").innerHTML = CATS.map(c => opt(c[0], c[1]+"  "+c[0], d.category)).join("");
@@ -868,7 +937,7 @@ function readForm(){
     cost:num($("fCost").value), currency:$("fCurrency").value, cycle:$("fCycle").value, start:$("fStart").value, next:$("fNext").value,
     autoRenew:$("fAuto").checked, expiry:$("fExpiry").value, remind:Number($("fRemind").value), payMethod:$("fPay").value,
     payDetail:$("fPayDetail").value.trim(), country:$("fCountry").value.trim(), note:$("fNote").value.trim(), url:$("fUrl").value.trim(),
-    color:look.color, emoji:look.emoji, photo:look.photo };
+    color:look.color, emoji:look.emoji, photo:look.photo, iconUrl:look.iconUrl, iconSmall:look.iconSmall };
 }
 function saveEdit(){
   const d = readForm();
@@ -899,7 +968,7 @@ function shrinkImage(blob){
     img.onerror = () => { URL.revokeObjectURL(url); rej(); }; img.src = url;
   });
 }
-async function setPhoto(blob){ try{ const p = await shrinkImage(blob); if(!validPhoto(p)) throw 0; look.photo = p; lookPrev(); }catch(e){ toast("Could not read that image"); } }
+async function setPhoto(blob){ try{ const p = await shrinkImage(blob); if(!validPhoto(p)) throw 0; look.photo = p; look.iconUrl = ""; lookPrev(); }catch(e){ toast("Could not read that image"); } }
 
 /* ---------- calendar (.ics) ---------- */
 const icsEsc = s => String(s||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
@@ -960,6 +1029,7 @@ function clean(x){ // sanitise one stored or imported record
     remind:REMIND.some(r => r[0] === Number(x.remind)) ? Number(x.remind) : 7, payMethod:PAY.includes(x.payMethod) ? x.payMethod : "Other",
     payDetail:str(x.payDetail,80), country:str(x.country,60), note:str(x.note,2000), url:safeUrl(str(x.url,300)) ? str(x.url,300) : "",
     color:validColor(x.color), emoji:EMOJI.includes(x.emoji) ? x.emoji : "", photo:validPhoto(x.photo),
+    iconUrl:validIconUrl(x.iconUrl), iconSmall:!!x.iconSmall,
     archived:!!x.archived, archivedOn:dt(x.archivedOn), created:dt(x.created) };
 }
 function importFile(file){
@@ -1033,11 +1103,22 @@ $("fStart").addEventListener("change", () => { if(!editing && $("fStart").value)
   let d = st; if(c !== "oneoff"){ let g = 0; while(d < today() && g++ < 3000) d = step(d, c); } $("fNext").value = iso(d); } });
 document.querySelectorAll(".seg2 button").forEach(b => b.onclick = () => { document.querySelectorAll(".seg2 button").forEach(x => x.classList.toggle("on", x === b));
   $("lIcon").style.display = b.dataset.pane === "lIcon" ? "" : "none"; $("lColor").style.display = b.dataset.pane === "lColor" ? "" : "none"; });
-$("lEmoji").onclick = e => { const b = e.target.closest("[data-e]"); if(!b) return; look.emoji = b.dataset.e; look.photo = "";
+$("lEmoji").onclick = e => { const b = e.target.closest("[data-e]"); if(!b) return; look.emoji = b.dataset.e; look.photo = ""; look.iconUrl = "";
   $("lEmoji").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); lookPrev(); };
 $("lColors").onclick = e => { const b = e.target.closest("[data-c]"); if(!b) return; look.color = b.dataset.c;
   $("lColors").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); lookPrev(); };
-$("lReset").onclick = () => { look.emoji = ""; look.photo = ""; $("lEmoji").querySelectorAll("button").forEach(x => x.classList.remove("on")); lookPrev(); };
+$("lWeb").onclick = async () => {
+  const u = $("fUrl").value.trim();
+  if(!safeUrl(u)){ toast("Fill in the Website field first (under More)"); return; }
+  const b = $("lWeb"); b.disabled = true; b.textContent = "Looking…";
+  const r = await findWebsiteIcon(u); b.disabled = false; b.textContent = "Website";
+  if(!r){ toast("That website does not publish an icon the app can use"); return; }
+  const small = r.small; delete r.small; Object.assign(look, r);
+  $("lEmoji").querySelectorAll("button").forEach(x => x.classList.remove("on")); lookPrev();
+  toast(small ? "Only a small icon is available from that site" : r.photo ? "Icon saved on this device" : "Icon added");
+};
+$("sIcons").onclick = fetchAllIcons;
+$("lReset").onclick = () => { look.emoji = ""; look.photo = ""; look.iconUrl = ""; $("lEmoji").querySelectorAll("button").forEach(x => x.classList.remove("on")); lookPrev(); };
 $("lPhoto").onclick = () => $("filePhoto").click();
 $("filePhoto").onchange = e => { const f = e.target.files[0]; if(f) setPhoto(f); e.target.value = ""; };
 $("lClip").onclick = async () => {
