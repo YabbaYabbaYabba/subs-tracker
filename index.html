@@ -273,7 +273,7 @@ dialog::backdrop{ background:rgba(0,0,0,.4) }
     <button class="action left red" id="sWipe">Erase everything</button>
   </div>
   <p class="hint">Everything is stored only on this device. Back up now and then: deleting the app from the Home Screen or clearing Safari data erases it.</p>
-  <p class="hint" style="margin-top:22px;text-align:center">Subs · version 4</p>
+  <p class="hint" style="margin-top:22px;text-align:center">Subs · version 4.1</p>
 </section>
 
 <nav class="tabbar" id="tabbar">
@@ -367,6 +367,7 @@ dialog::backdrop{ background:rgba(0,0,0,.4) }
     <div class="lookbtns">
       <button id="lWeb">Website</button><button id="lPhoto">Photo</button><button id="lClip">Clipboard</button><button id="lReset">Letter</button>
     </div>
+    <p class="hint" id="lStatus" style="text-align:center;min-height:18px;font-weight:600"></p>
     <p class="hint">Website loads the icon the service publishes on its own site (needs the Website field filled in), so your phone contacts that site. Photos are shrunk to a small icon and kept only on this device.</p>
     <input type="file" id="filePhoto" accept="image/png,image/jpeg,image/webp,image/heic" hidden>
   </div>
@@ -558,14 +559,24 @@ async function findWebsiteIcon(url){
   }catch(e){} }
   return { photo:"", iconUrl:src, iconSmall:small, emoji:"", small };
 }
+/* website of a catalog service whose name matches, e.g. "Netflix Premium" → netflix.com, "Disney Plus" → disneyplus.com */
+const nameKey = n => String(n||"").toLowerCase().replace(/\+/g,"plus").replace(/[^a-z0-9]/g,"");
+function guessUrl(name){
+  const k = nameKey(name); if(k.length < 2) return "";
+  let best = null;
+  for(const c of CATALOG){ if(!c[3]) continue; const ck = nameKey(c[0]);
+    if((k === ck || (ck.length >= 3 && k.startsWith(ck))) && (!best || ck.length > nameKey(best[0]).length)) best = c; }
+  return best ? best[3] : "";
+}
 async function fetchAllIcons(){
-  const list = state.subs.filter(s => safeUrl(s.url) && !validPhoto(s.photo) && !s.emoji && !validIconUrl(s.iconUrl));
+  // subscriptions without a website get one from the catalog when the name matches
+  const list = state.subs.filter(s => (safeUrl(s.url) || guessUrl(s.name)) && !validPhoto(s.photo) && !s.emoji && !validIconUrl(s.iconUrl));
   if(!list.length){ toast("Nothing to do: every subscription with a website already has an icon"); return; }
   if(!confirm("Get icons for "+list.length+" subscription"+(list.length === 1 ? "" : "s")+" from their own websites? Your phone will contact those websites.")) return;
   const b = $("sIcons"); b.disabled = true; let ok = 0, done = 0;
   for(let i = 0; i < list.length; i += 6){
-    await Promise.all(list.slice(i, i+6).map(async s => { const r = await findWebsiteIcon(s.url);
-      if(r){ delete r.small; Object.assign(s, r); ok++; } done++; b.textContent = "Getting icons… "+done+" of "+list.length; }));
+    await Promise.all(list.slice(i, i+6).map(async s => { const u = safeUrl(s.url) ? s.url : guessUrl(s.name); const r = await findWebsiteIcon(u);
+      if(r){ delete r.small; Object.assign(s, r); if(!safeUrl(s.url)) s.url = u; ok++; } done++; b.textContent = "Getting icons… "+done+" of "+list.length; }));
   }
   b.disabled = false; b.textContent = "Get website icons for all subscriptions";
   save(); render(); toast("Added "+ok+" of "+list.length+" icons"+(ok < list.length ? " · the rest keep their letter" : ""));
@@ -955,7 +966,7 @@ function openLook(){
   $("lEmoji").innerHTML = EMOJI.map(e => `<button data-e="${esc(e)}" class="${look.emoji === e && !look.photo ? "on" : ""}">${esc(e)}</button>`).join("");
   const cur = look.color || COLORS[hash($("fName").value || "?") % 13];
   $("lColors").innerHTML = COLORS.map(c => `<button data-c="${c}" style="background:${c}" class="${c === cur ? "on" : ""}" aria-label="Colour ${c}"></button>`).join("");
-  lookPrev(); $("dlgLook").showModal();
+  $("lStatus").textContent = ""; lookPrev(); $("dlgLook").showModal();
 }
 function lookPrev(){ $("lPrev").innerHTML = iconHTML({ name:$("fName").value || "?", ...look }, 96); }
 function shrinkImage(blob){
@@ -1070,7 +1081,10 @@ function renderSettings(){
 }
 
 /* ---------- events ---------- */
-let toastT; function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600); }
+let toastT; function toast(msg){ const t = $("toast");
+  // an open sheet sits above everything else on the page, so show the message inside the topmost one
+  const host = [...document.querySelectorAll("dialog[open]")].pop() || document.body; if(t.parentNode !== host) host.appendChild(t);
+  t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2600); }
 function go(v){ view = v; document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === v));
   document.querySelectorAll("#tabbar button").forEach(b => b.classList.toggle("on", b.dataset.view === v)); window.scrollTo(0,0); render(); }
 $("tabbar").onclick = e => { const b = e.target.closest("button"); if(b) go(b.dataset.view); };
@@ -1108,14 +1122,25 @@ $("lEmoji").onclick = e => { const b = e.target.closest("[data-e]"); if(!b) retu
 $("lColors").onclick = e => { const b = e.target.closest("[data-c]"); if(!b) return; look.color = b.dataset.c;
   $("lColors").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); lookPrev(); };
 $("lWeb").onclick = async () => {
-  const u = $("fUrl").value.trim();
-  if(!safeUrl(u)){ toast("Fill in the Website field first (under More)"); return; }
-  const b = $("lWeb"); b.disabled = true; b.textContent = "Looking…";
-  const r = await findWebsiteIcon(u); b.disabled = false; b.textContent = "Website";
-  if(!r){ toast("That website does not publish an icon the app can use"); return; }
+  const st = $("lStatus");
+  // use the Website field; if it is empty, take it from the catalog by name, or ask
+  let u = $("fUrl").value.trim();
+  if(!safeUrl(u)) u = guessUrl($("fName").value);
+  if(!safeUrl(u)){
+    const a = prompt("Website address for "+($("fName").value.trim() || "this subscription")+" (for example netflix.com)", "");
+    if(a === null) return;
+    u = a.trim();
+    if(!safeUrl(u)){ st.textContent = "That website address does not look right"; return; }
+  }
+  if(!safeUrl($("fUrl").value.trim())) $("fUrl").value = u; // saved with the subscription
+  const host = hostOf(u);
+  const b = $("lWeb"); b.disabled = true; b.textContent = "Looking…"; st.textContent = "Looking for an icon on "+host+"…";
+  let r = null; try{ r = await findWebsiteIcon(u); }catch(e){}
+  b.disabled = false; b.textContent = "Website";
+  if(!r){ st.textContent = "No usable icon found on "+host+". Try Photo or Clipboard instead."; return; }
   const small = r.small; delete r.small; Object.assign(look, r);
   $("lEmoji").querySelectorAll("button").forEach(x => x.classList.remove("on")); lookPrev();
-  toast(small ? "Only a small icon is available from that site" : r.photo ? "Icon saved on this device" : "Icon added");
+  st.textContent = (small ? "Only a small icon is available from "+host : "Icon found on "+host)+". Tap Done, then Save.";
 };
 $("sIcons").onclick = fetchAllIcons;
 $("lReset").onclick = () => { look.emoji = ""; look.photo = ""; look.iconUrl = ""; $("lEmoji").querySelectorAll("button").forEach(x => x.classList.remove("on")); lookPrev(); };
