@@ -8,8 +8,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Subs">
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" id="metaTheme" content="#f2f2f7">
+<script>/* apply the saved Light/Dark choice before the page paints */
+try{ var t = ((JSON.parse(localStorage.getItem("subs.v1") || "{}").settings) || {}).theme;
+  if(t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); }catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
@@ -18,11 +20,21 @@
   --bg:#f2f2f7; --card:#fff; --text:#000; --sub:#6c6c70; --muted:#8e8e93; --line:#e3e3e8; --tint:#007aff; --tint2:#b3d4ff;
   --red:#ff3b30; --orange:#ff9500; --green:#34c759; --fill:#e9e9ee; --sheet:#f2f2f7; --glass:rgba(255,255,255,.72);
   --shadow:0 1px 2px rgba(0,0,0,.04),0 2px 10px rgba(0,0,0,.04);
+  --segon:#fff; --spend:linear-gradient(135deg,#5e5ce6 0%,#007aff 100%); --spendshadow:0 8px 24px rgba(40,90,230,.28);
+  color-scheme:light;
 }
+/* dark colours: forced by Settings → Appearance → Dark, or following the phone when set to System */
+:root[data-theme="dark"]{ --bg:#000; --card:#1c1c1e; --text:#fff; --sub:#98989f; --muted:#8e8e93; --line:#2c2c2e; --tint:#0a84ff; --tint2:#1f4a80;
+  --red:#ff453a; --orange:#ff9f0a; --green:#30d158; --fill:#2c2c2e; --sheet:#1c1c1e; --glass:rgba(40,40,44,.72); --shadow:none;
+  --segon:#636366; --spend:linear-gradient(135deg,#3f3dc4 0%,#0062d6 100%); --spendshadow:none; color-scheme:dark }
+:root[data-theme="dark"] dialog .group,:root[data-theme="dark"] dialog .gcard{ background:#2c2c2e }
+:root[data-theme="dark"] dialog{ --line:#3a3a3c; --fill:#3a3a3c }
 @media (prefers-color-scheme: dark){
-  :root{ --bg:#000; --card:#1c1c1e; --text:#fff; --sub:#98989f; --muted:#8e8e93; --line:#2c2c2e; --tint:#0a84ff; --tint2:#1f4a80;
-    --red:#ff453a; --orange:#ff9f0a; --green:#30d158; --fill:#2c2c2e; --sheet:#1c1c1e; --glass:rgba(40,40,44,.72); --shadow:none }
-  dialog .group,dialog .gcard{ background:#2c2c2e } dialog{ --line:#3a3a3c; --fill:#3a3a3c }
+  :root:not([data-theme="light"]){ --bg:#000; --card:#1c1c1e; --text:#fff; --sub:#98989f; --muted:#8e8e93; --line:#2c2c2e; --tint:#0a84ff; --tint2:#1f4a80;
+    --red:#ff453a; --orange:#ff9f0a; --green:#30d158; --fill:#2c2c2e; --sheet:#1c1c1e; --glass:rgba(40,40,44,.72); --shadow:none;
+    --segon:#636366; --spend:linear-gradient(135deg,#3f3dc4 0%,#0062d6 100%); --spendshadow:none; color-scheme:dark }
+  :root:not([data-theme="light"]) dialog .group,:root:not([data-theme="light"]) dialog .gcard{ background:#2c2c2e }
+  :root:not([data-theme="light"]) dialog{ --line:#3a3a3c; --fill:#3a3a3c }
 }
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent }
 html,body{ margin:0; background:var(--bg); color:var(--text);
@@ -39,8 +51,27 @@ h2{ font-size:13px; font-weight:400; text-transform:uppercase; color:var(--sub);
 .pill{ display:flex; height:40px; border-radius:20px; background:var(--glass); box-shadow:var(--shadow); -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px) }
 .pill button{ width:46px; display:grid; place-items:center; color:var(--text) }
 svg.i{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round }
-.sumline{ margin:0 4px; font-size:15px; color:var(--sub); cursor:pointer }
-.sumline b{ color:var(--text); font-weight:600; font-variant-numeric:tabular-nums }
+/* spend panel at the top of Subs */
+.spend{ display:block; width:100%; text-align:left; margin-top:10px; padding:16px 18px 14px; border-radius:20px; color:#fff;
+  background:var(--spend); box-shadow:var(--spendshadow); cursor:pointer }
+.spend:active{ transform:scale(.99) }
+.sp-cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px }
+.sp-cols > div + div{ border-left:1px solid rgba(255,255,255,.3); padding-left:16px }
+.sp-l{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; opacity:.85 }
+.sp-v{ font-size:clamp(24px,8.2vw,36px); font-weight:800; letter-spacing:-.6px; line-height:1.12; margin-top:3px; white-space:nowrap;
+  font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis }
+.sp-v.sm{ font-size:clamp(18px,5.6vw,24px); margin-top:6px }
+.sp-f{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; font-size:14px }
+.sp-f .op{ opacity:.85 } .sp-f .go{ margin-left:auto; opacity:.85; white-space:nowrap }
+.sp-tag{ background:rgba(255,255,255,.22); border-radius:10px; padding:2px 9px; font-weight:600; font-size:13px }
+.sp-save{ margin-top:12px; background:rgba(255,255,255,.16); border-radius:12px; padding:9px 12px; font-size:14px; line-height:1.35 }
+.sp-save b{ font-weight:700; font-variant-numeric:tabular-nums }
+.green{ color:var(--green) !important }
+.sc.cx{ opacity:.85 } .sc.cx .price{ text-decoration:line-through; color:var(--sub) }
+/* appearance switch in Settings */
+.segt{ display:grid; grid-template-columns:repeat(3,1fr); background:var(--fill); border-radius:10px; padding:3px }
+.segt button{ color:var(--text); font-size:15px; font-weight:500; padding:8px 0; border-radius:8px }
+.segt button.on{ background:var(--segon); box-shadow:0 1px 4px rgba(0,0,0,.15); font-weight:600 }
 .search{ width:100%; margin-top:12px; border:0; border-radius:10px; background:var(--fill); color:var(--text);
   font:inherit; padding:8px 12px; outline:0; -webkit-user-select:text; user-select:text }
 /* grid of cards */
@@ -191,7 +222,7 @@ dialog::backdrop{ background:rgba(0,0,0,.4) }
     </div>
   </div>
   <h1 id="subsTitle">All</h1>
-  <div class="sumline" id="sumline"></div>
+  <button class="spend" id="spend" aria-label="Spending, open Analytics"></button>
   <input class="search" id="search" type="search" placeholder="Search" autocomplete="off">
   <div id="subsBody"></div>
 </section>
@@ -211,6 +242,11 @@ dialog::backdrop{ background:rgba(0,0,0,.4) }
 <!-- ============ SETTINGS ============ -->
 <section class="view" id="vSettings">
   <h1>Settings</h1>
+  <h2>Appearance</h2>
+  <div class="segt" id="sTheme" role="radiogroup" aria-label="Appearance">
+    <button data-t="system" role="radio">System</button><button data-t="light" role="radio">Light</button><button data-t="dark" role="radio">Dark</button>
+  </div>
+  <p class="hint">System follows your iPhone's Light or Dark setting.</p>
   <h2>Defaults</h2>
   <div class="group">
     <div class="field"><label>Main currency</label><select id="sBase"></select></div>
@@ -231,7 +267,7 @@ dialog::backdrop{ background:rgba(0,0,0,.4) }
     <button class="action left red" id="sWipe">Erase everything</button>
   </div>
   <p class="hint">Everything is stored only on this device. Back up now and then: deleting the app from the Home Screen or clearing Safari data erases it.</p>
-  <p class="hint" style="margin-top:22px;text-align:center">Subs · version 2</p>
+  <p class="hint" style="margin-top:22px;text-align:center">Subs · version 3</p>
 </section>
 
 <nav class="tabbar" id="tabbar">
@@ -288,7 +324,7 @@ dialog::backdrop{ background:rgba(0,0,0,.4) }
     <div class="group">
       <div class="field"><label>Category</label><select id="fCategory"></select></div>
       <div class="field"><label>Status</label><select id="fStatus"><option value="active">Active</option><option value="paused">Paused</option><option value="cancelled">Cancelled</option></select></div>
-      <div class="field" id="rowEnded"><label>Ended on</label><input id="fEnded" type="date"></div>
+      <div class="field" id="rowEnded"><label id="lblEnded">Ended on</label><input id="fEnded" type="date"></div>
     </div>
     <h2>Dates</h2>
     <div class="group">
@@ -379,7 +415,7 @@ const CATALOG = [
  ["Xbox Game Pass","Gaming","monthly","xbox.com"],["YouTube Premium","Streaming","monthly","youtube.com"]
 ].sort((a,b) => a[0].localeCompare(b[0]));
 
-const DEFAULT_SETTINGS = () => ({ base:"EUR", country:"Ireland", remind:7, rates:{}, sort:"next" });
+const DEFAULT_SETTINGS = () => ({ base:"EUR", country:"Ireland", remind:7, rates:{}, sort:"next", theme:"system" });
 let state = { subs:[], settings:DEFAULT_SETTINGS() };
 let view = "vSubs", filt = { type:"all" }, query = "", editing = null, detailId = null, look = null, year = new Date().getFullYear(), selMonth = null;
 
@@ -484,6 +520,7 @@ function inFilter(s, f){
     case "all": return !s.archived;
     case "month": { const [a,b] = monthRange(f.value); return !s.archived && occurrences(s, a, b).length > 0; }
     case "inactive": return !s.archived && s.status !== "active";
+    case "cancelled": return !s.archived && s.status === "cancelled";
     case "archive": return !!s.archived;
     case "cat": return !s.archived && s.category === f.value;
     case "acct": return !s.archived && acctKey(s) === f.value;
@@ -492,7 +529,7 @@ function inFilter(s, f){
 }
 function filterName(f){
   return f.type === "all" ? "All" : f.type === "month" ? (f.value ? "Next Month" : "This Month") : f.type === "inactive" ? "Inactive"
-    : f.type === "archive" ? "Archive" : f.value;
+    : f.type === "cancelled" ? "Cancelled" : f.type === "archive" ? "Archive" : f.value;
 }
 
 /* ---------- render: subs ---------- */
@@ -501,6 +538,24 @@ function runRate(list){
   live.forEach(s => { const m = monthly(s); by[s.currency] = (by[s.currency]||0) + m; const v = conv(m, s.currency, disp); v === null ? missing.add(s.currency) : total += v; });
   return { live, disp, total, missing:[...missing], by };
 }
+/* ---------- cancelled subscriptions: what cancelling saves ---------- */
+/* payments that would have been taken between the cancellation date and today */
+function avoidedCount(s){
+  const e = parse(s.endedOn); if(!e || s.cycle === "oneoff") return 0;
+  const ghost = Object.assign({}, s, { status:"active", endedOn:"", archived:false, autoRenew:true });
+  return occurrences(ghost, new Date(e.getFullYear(), e.getMonth(), e.getDate()+1), today()).length;
+}
+const countsAsSaving = s => s.status === "cancelled" && !s.archived && s.cycle !== "oneoff" && !(parse(s.expiry) && parse(s.expiry) < (parse(s.endedOn) || today()));
+function savings(disp){
+  const list = state.subs.filter(countsAsSaving);
+  let month = 0, sofar = 0, ok = true; const by = {}, soBy = {};
+  list.forEach(s => { const m = monthly(s), so = avoidedCount(s) * num(s.cost);
+    by[s.currency] = (by[s.currency]||0) + m; soBy[s.currency] = (soBy[s.currency]||0) + so;
+    const v = conv(m, s.currency, disp), w = conv(so, s.currency, disp); if(v === null || w === null) ok = false; else { month += v; sofar += w; } });
+  return { list, n:list.length, ok, month, sofar, by, soBy, disp };
+}
+/* "€10 + $5" style list for figures that cannot be combined */
+const multi = (by, k = 1) => Object.entries(by).filter(([,v]) => v > 0).map(([c,v]) => money(v*k, c)).join(" + ");
 function render(){
   rollForward();
   if(view === "vSubs") renderSubs(); else if(view === "vAnalytics") renderAnalytics(); else if(view === "vUpcoming") renderUpcoming(); else renderSettings();
@@ -508,15 +563,7 @@ function render(){
 }
 function renderSubs(){
   $("subsTitle").textContent = filterName(filt);
-  const rr = runRate(state.subs);
-  const need = state.subs.filter(s => alertFor(s)).length;
-  let sl = "";
-  if(rr.live.length){
-    if(!rr.missing.length) sl = `<b>${esc(money(rr.total, rr.disp))}</b> a month · <b>${esc(money(rr.total*12, rr.disp))}</b> a year`;
-    else sl = Object.entries(rr.by).map(([c,v]) => `<b>${esc(money(v*12,c))}</b>`).join(" + ")+" a year";
-    if(need) sl += ` · <span class="red">${need} need${need === 1 ? "s" : ""} attention</span>`;
-  }
-  $("sumline").innerHTML = sl;
+  renderSpend();
   $("search").style.display = state.subs.length > 5 ? "" : "none";
 
   const q = query.trim().toLowerCase();
@@ -528,24 +575,54 @@ function renderSubs(){
   if(!state.subs.length) out = `<div class="empty"><b>No subscriptions yet</b>Tap + to add your first one: streaming, utilities, insurance, anything that renews.</div>`;
   else if(!list.length) out = `<div class="empty">Nothing here.</div>`;
   else {
-    const showOff = filt.type === "all" || filt.type === "cat" || filt.type === "acct";
-    const main = showOff ? list.filter(s => s.status === "active") : list, off = showOff ? list.filter(s => s.status !== "active") : [];
-    if(main.length) out += `<div class="grid">${main.sort(sorter).map(card).join("")}</div>`;
-    if(off.length) out += `<h2>Paused &amp; cancelled</h2><div class="grid">${off.sort(sorter).map(card).join("")}</div>`;
+    const byEnded = (a,b) => (b.endedOn||"").localeCompare(a.endedOn||"") || a.name.localeCompare(b.name);
+    if(filt.type === "cancelled") out += `<div class="grid">${list.sort(byEnded).map(card).join("")}</div>`;
+    else {
+      const split = filt.type === "all" || filt.type === "cat" || filt.type === "acct" || filt.type === "inactive";
+      const main = split ? list.filter(s => s.status === "active") : list;
+      const paused = split ? list.filter(s => s.status === "paused") : [], cancelled = split ? list.filter(s => s.status === "cancelled") : [];
+      if(main.length) out += `<div class="grid">${main.sort(sorter).map(card).join("")}</div>`;
+      if(paused.length) out += `<h2>Paused</h2><div class="grid">${paused.sort(sorter).map(card).join("")}</div>`;
+      if(cancelled.length) out += `<h2>Cancelled · ${cancelled.length}</h2><div class="grid">${cancelled.sort(byEnded).map(card).join("")}</div>`;
+    }
   }
   $("subsBody").innerHTML = out;
+}
+function renderSpend(){
+  const el = $("spend");
+  if(!state.subs.length){ el.style.display = "none"; return; }
+  el.style.display = "";
+  const rr = runRate(state.subs), need = state.subs.filter(s => alertFor(s)).length;
+  let h;
+  if(!rr.missing.length)
+    h = `<div class="sp-cols"><div><div class="sp-l">Per month</div><div class="sp-v">${esc(money(rr.total, rr.disp))}</div></div>
+      <div><div class="sp-l">Per year</div><div class="sp-v">${esc(money(rr.total*12, rr.disp))}</div></div></div>`;
+  else // several currencies and no exchange rates: one row per currency
+    h = `<div class="sp-cols"><div class="sp-l">Per month</div><div class="sp-l">Per year</div></div>`+
+      Object.entries(rr.by).sort((a,b) => b[1]-a[1]).map(([c,v]) => `<div class="sp-cols"><div class="sp-v sm">${esc(money(v,c))}</div><div class="sp-v sm">${esc(money(v*12,c))}</div></div>`).join("");
+  h += `<div class="sp-f"><span class="op">${rr.live.length} active</span>`+
+    (need ? `<span class="sp-tag">⚠︎ ${need} need${need === 1 ? "s" : ""} attention</span>` : "")+
+    (rr.missing.length ? `<span class="op">· add exchange rates for one total</span>` : "")+`<span class="go">Analytics ›</span></div>`;
+  const sv = savings(rr.disp);
+  if(sv.n){
+    const m = sv.ok ? money(sv.month, sv.disp) : multi(sv.by), y = sv.ok ? money(sv.month*12, sv.disp) : multi(sv.by, 12);
+    const so = sv.ok ? (sv.sofar ? money(sv.sofar, sv.disp) : "") : multi(sv.soBy);
+    h += `<div class="sp-save">✂︎ Cancelled ${sv.n}: saving <b>${esc(m)}</b> a month · <b>${esc(y)}</b> a year${so ? ` · <b>${esc(so)}</b> saved so far` : ""}</div>`;
+  }
+  el.innerHTML = h;
 }
 function sortKey(s){ if(s.status !== "active") return 1e9; const d = daysTo(s.next); return d === null ? 1e8 : d; }
 function card(s){
   const a = alertFor(s), cyc = CYCLES[s.cycle] || CYCLES.monthly;
   let when, cls = "";
   const de = daysTo(s.expiry);
-  if(s.status !== "active") when = s.status === "paused" ? "Paused" : "Cancelled";
+  if(s.status === "cancelled"){ when = "Cancelled"+(parse(s.endedOn) ? " "+shortDate(parse(s.endedOn)) : ""); cls = "green"; }
+  else if(s.status === "paused") when = "Paused";
   else if(de !== null && de < 0){ when = "Expired ("+shortDate(parse(s.expiry))+")"; cls = "red"; }
   else if(s.next){ const d = daysTo(s.next); when = relWhen(d)+" ("+shortDate(parse(s.next))+")";
     if(a){ cls = a.days <= 1 ? "red" : "orange"; if(a.text === "Expires") when = "Expires "+relWhen(a.days).toLowerCase()+" ("+shortDate(parse(s.expiry))+")"; } }
   else when = "No date set";
-  return `<button class="sc ${s.status !== "active" || s.archived ? "muted" : ""}" data-id="${esc(s.id)}">
+  return `<button class="sc ${s.status === "cancelled" && !s.archived ? "cx" : s.status !== "active" || s.archived ? "muted" : ""}" data-id="${esc(s.id)}">
     <div class="top">${iconHTML(s, 30)}<div class="price">${esc(money(num(s.cost), s.currency))}<small>${esc(cyc[2])}</small></div></div>
     <div class="nm">${esc(s.name)}</div><div class="when ${cls}">${esc(when)}</div></button>`;
 }
@@ -593,6 +670,16 @@ function renderAnalytics(){
   else h += Object.entries(rr.by).map(([c,v]) => `<div class="kv"><div class="k">${esc(c)}</div><div class="v">${esc(money(v,c))} / mo · ${esc(money(v*12,c))} / yr</div></div>`).join("");
   h += `<div class="kv"><div class="k">Active subscriptions</div><div class="v">${rr.live.length}</div></div></div>
     <p class="note">What your active subscriptions cost per month and per year at today's prices.</p>`;
+  const sv = savings(rr.disp);
+  if(sv.n){
+    h += `<h2>Saved by cancelling</h2><div class="group">
+      <div class="kv"><div class="k">Per month</div><div class="v green" style="font-weight:600">${esc(sv.ok ? money(sv.month, sv.disp) : multi(sv.by))}</div></div>
+      <div class="kv"><div class="k">Per year</div><div class="v green" style="font-weight:600">${esc(sv.ok ? money(sv.month*12, sv.disp) : multi(sv.by, 12))}</div></div>
+      <div class="kv"><div class="k">Saved so far</div><div class="v">${esc(sv.ok ? money(sv.sofar, sv.disp) : multi(sv.soBy) || money(0, sv.disp))}</div></div>`+
+      sv.list.slice().sort((a,b) => monthly(b) - monthly(a)).map(s => `<button class="row ind" data-id="${esc(s.id)}">${iconHTML(s,32)}<div class="mid"><div class="t">${esc(s.name)}</div>
+        <div class="s">Cancelled${parse(s.endedOn) ? " "+esc(fmtDate(s.endedOn)) : ""}</div></div><div class="r green">${esc(money(monthly(s), s.currency))} /mo</div></button>`).join("")+`</div>
+      <p class="note">"Saved so far" counts the payments that would have been taken since each cancellation date.</p>`;
+  }
   // categories
   const cats = Object.entries(D.perCat).sort((a,b) => b[1]-a[1]);
   if(cats.length){ const cm = cats[0][1];
@@ -653,6 +740,7 @@ function openMenu(){
   let h = `<h2>Browse</h2><div class="group">`+item({type:"all"}, ic(`<rect x="4" y="9" width="16" height="11" rx="2.5"/><path d="M6.5 6h11M9 3h6"/>`), "All")+
     item({type:"month",value:0}, ic(cal), "This Month")+item({type:"month",value:1}, ic(cal+`<path d="M12 13v4M10 15h4"/>`), "Next Month")+
     item({type:"inactive"}, ic(`<circle cx="12" cy="12" r="8.5"/><path d="M10 9v6M14 9v6"/>`), "Inactive")+
+    item({type:"cancelled"}, ic(`<circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/>`), "Cancelled")+
     item({type:"archive"}, ic(`<rect x="3.5" y="4" width="17" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/>`), "Archive")+`</div>`;
   const cats = CATS.filter(c => vis.some(s => s.category === c[0]));
   if(cats.length) h += `<h2>Categories</h2><div class="group">`+cats.map(c => item({type:"cat",value:c[0]}, `<span class="dot" style="background:${c[2]}"></span>`, c[0])).join("")+`</div>`;
@@ -696,6 +784,13 @@ function renderDetail(){
     <div class="amt">${esc(money(num(s.cost), s.currency))}</div></div>`;
   if(s.cycle !== "oneoff") h += `<div class="kv"><div><div class="k">Works out at</div><div class="v">${esc(money(monthly(s), s.currency))} a month · ${esc(money(monthly(s)*12, s.currency))} a year</div></div></div>`;
   h += `</div>`;
+  if(s.status === "cancelled" && s.cycle !== "oneoff"){
+    const n = avoidedCount(s);
+    h += `<div class="group" style="margin-top:14px"><div class="kv"><div><div class="k">Saving since cancelling</div>
+      <div class="v green" style="font-weight:600">${esc(money(monthly(s), s.currency))} a month · ${esc(money(monthly(s)*12, s.currency))} a year</div></div></div>`+
+      (parse(s.endedOn) ? `<div class="kv"><div><div class="k">Saved so far</div><div class="v">${esc(money(n*num(s.cost), s.currency))} · ${n} payment${n === 1 ? "" : "s"} avoided</div></div></div>`
+        : `<div class="kv"><div><div class="k">Saved so far</div><div class="v" style="color:var(--sub);font-size:15px">Set the cancellation date (Edit) to see this</div></div></div>`)+`</div>`;
+  }
   h += `<div class="group" style="margin-top:14px">`;
   if(s.payMethod || s.payDetail) h += kv("Payment account", esc([s.payDetail, s.payMethod].filter(Boolean).join(" · ")));
   // total paid
@@ -721,6 +816,9 @@ function renderDetail(){
 function moreActions(){
   const s = state.subs.find(x => x.id === detailId); if(!s) return;
   actionSheet(s.name, [
+    s.status === "cancelled"
+      ? { label:"Reactivate", fn:() => { s.status = "active"; s.endedOn = ""; save(); render(); renderDetail(); toast("Reactivated"); } }
+      : { label:"Mark as Cancelled", fn:() => { s.status = "cancelled"; s.endedOn = iso(today()); save(); render(); renderDetail(); toast("Marked as cancelled today · change the date in Edit"); } },
     { label:"Add reminder to Calendar", fn:() => calendar([s], (s.name||"subscription").replace(/[^\w-]+/g,"_")+".ics") },
     { label:"Duplicate", fn:() => { const c = JSON.parse(JSON.stringify(s)); c.id = newId(); c.name = s.name+" (copy)"; c.created = iso(today()); state.subs.push(c); save(); render(); openDetail(c.id); } },
     s.archived ? { label:"Unarchive", fn:() => { s.archived = false; s.archivedOn = ""; save(); render(); renderDetail(); toast("Moved back"); } }
@@ -755,7 +853,9 @@ function openEdit(id, preset){
   calcCosts(); updTile(); updEnded();
   $("dlgEdit").showModal(); $("dlgEdit").querySelector(".body").scrollTop = 0;
 }
-function updEnded(){ $("rowEnded").style.display = $("fStatus").value === "active" ? "none" : ""; if($("fStatus").value !== "active" && !$("fEnded").value) $("fEnded").value = iso(today()); }
+function updEnded(){ const st = $("fStatus").value;
+  $("rowEnded").style.display = st === "active" ? "none" : ""; $("lblEnded").textContent = st === "cancelled" ? "Cancelled on" : "Paused on";
+  if(st !== "active" && !$("fEnded").value) $("fEnded").value = iso(today()); }
 function updTile(){ $("eTile").innerHTML = iconHTML({ name:$("fName").value || "?", ...look }, 60); }
 function calcCosts(){
   const c = $("fCycle").value, m = num($("fCost").value) * CYCLES[c][1], cur = $("fCurrency").value;
@@ -874,6 +974,7 @@ function importFile(file){
       if(typeof st.country === "string") state.settings.country = st.country.slice(0,60);
       if(REMIND.some(x => x[0] === Number(st.remind))) state.settings.remind = Number(st.remind);
       if(["next","name","price","category"].includes(st.sort)) state.settings.sort = st.sort;
+      if(["system","light","dark"].includes(st.theme)){ state.settings.theme = st.theme; applyTheme(); }
       if(st.rates && typeof st.rates === "object"){ state.settings.rates = {}; for(const k in st.rates) if(/^[A-Z]{3}$/.test(k)) state.settings.rates[k] = num(st.rates[k]); }
       save(); document.querySelectorAll("dialog[open]").forEach(x => x.close()); render(); toast("Restored "+subs.length+" subscriptions");
     }catch(e){ toast("That file is not a valid backup"); } };
@@ -881,8 +982,15 @@ function importFile(file){
 }
 
 /* ---------- settings ---------- */
+function applyTheme(){
+  const t = ["light","dark"].includes(state.settings.theme) ? state.settings.theme : "system", root = document.documentElement;
+  if(t === "system") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", t);
+  const dark = t === "dark" || (t === "system" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+  $("metaTheme").setAttribute("content", dark ? "#000000" : "#f2f2f7");
+  document.querySelectorAll("#sTheme button").forEach(b => { const on = b.dataset.t === t; b.classList.toggle("on", on); b.setAttribute("aria-checked", on); });
+}
 function renderSettings(){
-  const st = state.settings;
+  const st = state.settings; applyTheme();
   $("sBase").innerHTML = curOptions(st.base); $("sCountry").value = st.country || "";
   $("sRemind").innerHTML = REMIND.map(r => opt(r[0], r[1], st.remind)).join("");
   const others = [...new Set(state.subs.map(s => s.currency))].filter(c => c !== st.base).sort();
@@ -896,7 +1004,7 @@ let toastT; function toast(msg){ const t = $("toast"); t.textContent = msg; t.cl
 function go(v){ view = v; document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === v));
   document.querySelectorAll("#tabbar button").forEach(b => b.classList.toggle("on", b.dataset.view === v)); window.scrollTo(0,0); render(); }
 $("tabbar").onclick = e => { const b = e.target.closest("button"); if(b) go(b.dataset.view); };
-$("sumline").onclick = () => { year = today().getFullYear(); selMonth = null; go("vAnalytics"); };
+$("spend").onclick = () => { year = today().getFullYear(); selMonth = null; go("vAnalytics"); };
 $("btnAdd").onclick = openCatalog;
 $("btnMenu").onclick = openMenu;
 $("btnSort").onclick = () => actionSheet("Sort by", [["next","Next payment"],["name","Name"],["price","Price"],["category","Category"]].map(([k,l]) =>
@@ -937,6 +1045,8 @@ $("lClip").onclick = async () => {
     for(const item of await navigator.clipboard.read()){ const t = item.types.find(x => /^image\/(png|jpeg|webp)$/.test(x)); if(t){ await setPhoto(await item.getType(t)); return; } }
     toast("No image on the clipboard"); }catch(e){ toast("Copy an image first, then tap Clipboard"); } };
 $("lDone").onclick = () => { $("dlgLook").close(); updTile(); };
+$("sTheme").onclick = e => { const b = e.target.closest("[data-t]"); if(!b) return; state.settings.theme = b.dataset.t; save(); applyTheme(); };
+try{ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme); }catch(e){}
 $("sBase").onchange = e => { state.settings.base = e.target.value; state.settings.rates = {}; save(); render(); };
 $("sCountry").onchange = e => { state.settings.country = e.target.value.trim(); save(); };
 $("sRemind").onchange = e => { state.settings.remind = Number(e.target.value); save(); };
@@ -947,14 +1057,14 @@ $("sCsv").onclick = csv;
 $("sImport").onclick = () => $("fileImport").click();
 $("fileImport").onchange = e => { if(e.target.files[0]) importFile(e.target.files[0]); e.target.value = ""; };
 $("sWipe").onclick = () => { if(confirm("Erase all subscriptions and settings from this device? This cannot be undone.")){
-  localStorage.removeItem(KEY); state = { subs:[], settings:DEFAULT_SETTINGS() }; filt = { type:"all" }; render(); } };
+  localStorage.removeItem(KEY); state = { subs:[], settings:DEFAULT_SETTINGS() }; filt = { type:"all" }; applyTheme(); render(); } };
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest("dialog").close());
 document.querySelectorAll("dialog").forEach(d => d.addEventListener("click", e => { if(e.target === d) d.close(); }));
 $("dlgDetail").addEventListener("close", () => render());
 document.addEventListener("visibilitychange", () => { if(!document.hidden) render(); });
 
 $("countries").innerHTML = COUNTRIES.map(c => `<option value="${esc(c)}">`).join("");
-load(); render();
+load(); applyTheme(); render();
 if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 </script>

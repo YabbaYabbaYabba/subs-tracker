@@ -8,6 +8,10 @@ history, custom icons (emoji, colour or your own photo), a filter menu (this mon
 archive, categories, payment accounts), sorting, an Analytics tab with yearly spend per month, category
 and account, and an Upcoming tab.
 
+Version 3 adds a coloured spend panel (per month and per year) at the top, cancelled-subscription tracking
+(Cancelled view, cancellation date, savings per month and year, saved so far, Mark as Cancelled / Reactivate),
+and a Light / Dark / System appearance setting.
+
 All data is stored on the device only. The app makes no network requests other than loading its own files.
 
 **Install on iPhone:** open the site in Safari, tap Share, then *Add to Home Screen*.

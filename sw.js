@@ -1,5 +1,5 @@
 // Change VERSION whenever the files are replaced, so phones pick up the update.
-const VERSION = "subs-v2";
+const VERSION = "subs-v3";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
