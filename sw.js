@@ -1,5 +1,5 @@
 // Change VERSION whenever the files are replaced, so phones pick up the update.
-const VERSION = "subs-v5";
+const VERSION = "subs-v6";
 const ICONS = "subs-icons"; // icons loaded from services' own websites, kept for offline use
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/apple-touch-icon.png", "icons/icon-192.png", "icons/icon-512.png"];
 self.addEventListener("install", e => {
