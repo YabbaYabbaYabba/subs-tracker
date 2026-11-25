@@ -19,6 +19,18 @@ website icons: when you tap **Website** in the icon editor or **Get website icon
 service's icon from that service's own website (no referrer is sent). Icons are copied onto the device where the site
 allows it; otherwise they are loaded from the site and cached for offline use.
 
+## Screenshots
+
+Sample data only: the names, amounts and dates below are made up.
+
+| Subscriptions | Dark mode | Detail |
+|---|---|---|
+| <img src="screenshots/subs.png" width="250" alt="Subscriptions grid"> | <img src="screenshots/subs-dark.png" width="250" alt="Subscriptions grid in dark mode"> | <img src="screenshots/detail.png" width="250" alt="Subscription detail"> |
+
+| Analytics | Upcoming | Settings |
+|---|---|---|
+| <img src="screenshots/analytics.png" width="250" alt="Analytics"> | <img src="screenshots/upcoming.png" width="250" alt="Upcoming payments"> | <img src="screenshots/settings.png" width="250" alt="Settings"> |
+
 **Install on iPhone:** open the site in Safari, tap Share, then *Add to Home Screen*.
 
 **Updating:** when files change, bump `VERSION` in `sw.js`.
